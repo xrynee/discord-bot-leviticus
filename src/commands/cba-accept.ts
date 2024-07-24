@@ -1,4 +1,10 @@
-import { ApplicationCommand, Client, ComponentInteraction, Constants } from 'eris';
+import {
+    ApplicationCommand,
+    Client,
+    CommandInteraction,
+    ComponentInteraction,
+    Constants
+} from 'eris';
 
 import { ICommand } from '../interface';
 import { Global } from '../util';
@@ -34,7 +40,7 @@ export class CbaAccept implements ICommand {
         await Global.refresh(interaction.guildID);
     }
 
-    public isHandledBy(): boolean {
-        return true;
+    public isHandledBy(client: CommandInteraction): boolean {
+        return client.data.name === this.cmd.name;
     }
 }
