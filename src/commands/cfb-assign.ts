@@ -6,20 +6,18 @@ import {
     InteractionDataOptionsWithValue
 } from 'eris';
 
-import { SCHOOLS } from '../config';
+import { COMMANDS, FILES, SCHOOLS } from '../config';
 import { ICommand, SchoolAssignment } from '../interface';
 import { Global, LocalStorage } from '../util';
 
-const ASSIGNMENTS = 'lv-assignments';
-
-export class LeviRegisterPlayer implements ICommand {
+export class CfbAssign implements ICommand {
     private client: Client;
     private cmd: ApplicationCommand;
     public async create(client: Client) {
         this.client = client;
 
         this.cmd = await client.createCommand({
-            name: 'lv-register-player',
+            name: COMMANDS.ASSIGN,
             description: 'Assign a discord user to a school.',
             options: [
                 {
@@ -56,14 +54,14 @@ export class LeviRegisterPlayer implements ICommand {
             return;
         }
 
-        const assignments: SchoolAssignment[] = (await LocalStorage.get(ASSIGNMENTS)) || [];
+        const assignments: SchoolAssignment[] = (await LocalStorage.get(FILES.ASSIGNMENTS)) || [];
 
         const filteredAssignments = assignments.filter(
             a => a.userId !== userId && a.schoolId !== schoolId
         );
         filteredAssignments.push({ userId, schoolId });
 
-        await LocalStorage.set(ASSIGNMENTS, filteredAssignments);
+        await LocalStorage.set(FILES.ASSIGNMENTS, filteredAssignments);
 
         await interaction.defer();
         await interaction.deleteOriginalMessage();

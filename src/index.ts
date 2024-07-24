@@ -1,6 +1,7 @@
 import eris, { Constants } from 'eris';
 
-import { ensureCommands, onEvent } from './commands';
+import { COMMANDS, ensureCommands } from './commands';
+import { COMPONENT_HANDLERS } from './component-handlers';
 import { init } from './messages';
 import { Environment, EnvKey } from './util';
 
@@ -20,8 +21,14 @@ bot.on('ready', () => {
     init(bot);
 });
 
-bot.on('interactionCreate', interaction => {
-    onEvent(interaction);
+bot.on('interactionCreate', event => {
+    if (event instanceof eris.CommandInteraction) {
+        const command = COMMANDS.find(c => c.isHandledBy(event));
+        command?.handle(event);
+    } else if (event instanceof eris.ComponentInteraction) {
+        const handler = COMPONENT_HANDLERS.find(c => c.isHandledBy(event));
+        handler?.handle(event);
+    }
 });
 
 bot.connect();

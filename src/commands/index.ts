@@ -2,32 +2,26 @@ import * as eris from 'eris';
 
 import { ICommand } from '../interface';
 
-import { CbaAccept } from './cba-accept';
-import { LeviRegisterPlayer } from './levi-register-player';
+// import { CbaAccept } from './cba-accept';
+import { CfbAssign } from './cfb-assign';
+import { CfbInit } from './cfb-init';
 
 export const COMMANDS: ICommand[] = [
-    // new AddRomRoleCommand(),
-    // new RegisterRomRoleCommand(),
-    // new SetChannelCommand(),
-    new CbaAccept(),
-    new LeviRegisterPlayer()
+    // new CbaAccept(),
+    new CfbAssign(),
+    new CfbInit()
 ];
 
-export const onEvent = async (event: eris.Interaction) => {
-    if (event instanceof eris.CommandInteraction || event instanceof eris.ComponentInteraction) {
-        const command = COMMANDS.find(c => c.isHandledBy(event));
-
-        command?.handle(event);
-    }
-};
-
 export const ensureCommands = async (client: eris.Client): Promise<ICommand[]> => {
+    // await client.deleteCommand('1265762454630039586');
+    // await client.deleteCommand('1265762456672669879');
+    // await client.deleteCommand('1265762458421956608');
     await Promise.all(
         COMMANDS.map(async command => {
             await command.create(client);
         })
     );
-    // const commands = await client.getCommands();
+    const commands = await client.getCommands();
     // console.log('commands', commands);
     return COMMANDS;
 };
