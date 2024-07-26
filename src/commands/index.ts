@@ -5,11 +5,13 @@ import { ICommand } from '../interface';
 // import { CbaAccept } from './cba-accept';
 import { CfbAssign } from './cfb-assign';
 import { CfbInit } from './cfb-init';
+import { TwitchCommand } from './twitch';
 
 export const COMMANDS: ICommand[] = [
     // new CbaAccept(),
     new CfbAssign(),
-    new CfbInit()
+    new CfbInit(),
+    new TwitchCommand()
 ];
 
 export const ensureCommands = async (client: eris.Client): Promise<ICommand[]> => {
@@ -21,7 +23,7 @@ export const ensureCommands = async (client: eris.Client): Promise<ICommand[]> =
             await command.create(client);
         })
     );
-    const commands = await client.getCommands();
+    // const commands = await client.getCommands();
     // console.log('commands', commands);
     return COMMANDS;
 };

@@ -52,11 +52,15 @@ export class CurrentSchedule implements IMessage {
                 content: `No users are assigned to schools. Use \`${COMMANDS.ASSIGN}\` to assign users to schools.`
             });
         } else {
+            assignments.sort((a, b) => a.schoolId - b.schoolId);
             const gameCache: LvGame[] = await LocalStorage.get(FILES.GAME_CACHE);
 
             let messageContent = DIVIDER + '\n\n';
             assignments?.forEach(assignment => {
                 const user = this.client.users.get(assignment.userId);
+                if (!user) {
+                    return;
+                }
                 const school = SCHOOLS.find(s => s.id === assignment.schoolId);
                 const game = gameCache?.find(g => g.userId === assignment.userId);
 
@@ -65,10 +69,16 @@ export class CurrentSchedule implements IMessage {
                 }\n\n`;
             });
             messageContent += DIVIDER;
-            await this.client.editMessage(channelId, messageId, {
-                content: messageContent,
-                components: this.buildComponents(assignments)
-            });
+
+            try {
+                await this.client.editMessage(channelId, messageId, {
+                    content: messageContent,
+                    components: this.buildComponents(assignments)
+                });
+            } catch (e) {
+                await LocalStorage.set(FILES.CURRENT_GAMES_MESSAGE_ID, '');
+                this.refresh();
+            }
         }
     }
 

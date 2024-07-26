@@ -11,8 +11,8 @@
         "lint": "eslint . --ext .ts --fix",
         "format": "prettier --ignore-path .gitignore --write \"**/*.+(js|ts|json)\"",
         "push": "aws s3 sync ./ s3://tate-studio-discord-bots/leviticus --exclude \"node_modules/*\" --exclude \".git/*\" --exclude \"Data/*\" --exclude package-lock.json",
-        "pull": "aws s3 sync s3://tate-studio-discord-bots/leviticus ./leviticus",
-        "serve": "pm2 start dist/index.js --name leviticus",
+        "pull": "aws s3 sync s3://tate-studio-discord-bots/leviticus ../leviticus",
+        "serve": "pm2 stop leviticus && pm2 start dist/index.js --name leviticus",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "author": "Ryne Tate",

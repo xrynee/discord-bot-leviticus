@@ -81,9 +81,14 @@ export class ClearGameCache implements IMessage {
             ? 'Are you sure you want to clear the game cache?'
             : DIVIDER;
 
-        await this.client.editMessage(channelId, messageId, {
-            content,
-            components
-        });
+        try {
+            await this.client.editMessage(channelId, messageId, {
+                content,
+                components
+            });
+        } catch (e) {
+            await LocalStorage.set(FILES.CLEAR_MESSAGE_ID, '');
+            await this.refresh();
+        }
     }
 }

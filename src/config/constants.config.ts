@@ -2,7 +2,8 @@ export const DIVIDER = '---------------------------------';
 
 export const COMMANDS = {
     ASSIGN: 'cfb-assign',
-    INIT: 'cfb-init'
+    INIT: 'cfb-init',
+    TWITCH: 'twitch'
 };
 
 export const FILES = {
@@ -14,7 +15,9 @@ export const FILES = {
 
     ASSIGNMENTS: 'cfb-assignments',
     GAME_CACHE: 'cfb-game-cache',
-    SELECTED_SCHOOL: 'cfb-selected-school'
+    SELECTED_SCHOOL: 'cfb-selected-school',
+
+    TWITCH_ROOT: 'twitch/'
 };
 
 export const COMPONENT_IDS = {

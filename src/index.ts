@@ -1,9 +1,11 @@
-import eris, { Constants } from 'eris';
+import eris, { Constants, Message } from 'eris';
 
 import { COMMANDS, ensureCommands } from './commands';
 import { COMPONENT_HANDLERS } from './component-handlers';
+import { FILES } from './config';
 import { init } from './messages';
-import { Environment, EnvKey } from './util';
+import { LvGame } from './messages/clear-game-cache';
+import { Environment, EnvKey, Global, LocalStorage } from './util';
 
 Environment.init();
 
@@ -14,6 +16,29 @@ console.log('botToken', botToken);
 const bot = new eris.Client(botToken, {
     restMode: true,
     intents: [Constants.Intents.all]
+});
+
+bot.on('messageCreate', async (message: Message) => {
+    if (message.author.bot) return;
+
+    if (message.content?.toLowerCase().includes('twitch.tv/')) {
+        const userId = message.author.id;
+
+        const gameCache: LvGame[] = (await LocalStorage.get(FILES.GAME_CACHE)) || [];
+        const game = gameCache.find(g => g.userId === userId);
+        if (!!game) {
+            game.isDone = true;
+        } else {
+            gameCache.push({ userId, isDone: true });
+        }
+        await LocalStorage.set(FILES.GAME_CACHE, gameCache);
+
+        await Global.refresh(message.guildID);
+    }
+
+    if (message.content === 'ping') {
+        message.channel.createMessage('pong');
+    }
 });
 
 bot.on('ready', () => {
