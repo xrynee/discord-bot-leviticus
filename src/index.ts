@@ -5,7 +5,8 @@ import { COMPONENT_HANDLERS } from './component-handlers';
 // import { FILES } from './config';
 import { init } from './messages';
 // import { LvGame } from './messages/clear-game-cache';
-import { Environment, EnvKey, Global, LocalStorage } from './util';
+import { startServices } from './service';
+import { Environment, EnvKey } from './util';
 
 Environment.init();
 
@@ -29,6 +30,7 @@ bot.on('messageCreate', async (message: Message) => {
 bot.on('ready', () => {
     ensureCommands(bot);
     init(bot);
+    startServices(bot);
     console.log('Bot is ready');
 });
 
