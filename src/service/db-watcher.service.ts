@@ -3,16 +3,18 @@ import Eris from 'eris';
 
 import { DIVIDER, FILES } from '../config';
 import { IService, Weights } from '../interface';
-import { Db, Environment, EnvKey, LocalStorage } from '../util';
+import { DataSwitchboardClient, Environment, EnvKey, LocalStorage } from '../util';
 
 export class DbWatcherService implements IService {
     private bot: Eris.Client;
-    private db: Db;
+    // private db: Db;
+    private swbClient: DataSwitchboardClient;
     private isAlwaysPollingWindow: boolean;
 
     constructor(bot: Eris.Client) {
         this.bot = bot;
-        this.db = new Db();
+        // this.db = new Db();
+        this.swbClient = new DataSwitchboardClient();
         this.isAlwaysPollingWindow = Environment.getBoolean(EnvKey.IS_ALWAYS_POLLING_WINDOW);
     }
 
@@ -20,7 +22,7 @@ export class DbWatcherService implements IService {
         try {
             const todayDt =
                 Environment.get(EnvKey.DT_OVERRIDE) || new Date().toISOString().split('T')[0];
-            const weightsResponse = await this.db.getWeights(todayDt);
+            const weightsResponse = await this.swbClient.getWeights(todayDt);
 
             if (weightsResponse?.length > 0) {
                 const weights = weightsResponse[0];
@@ -50,7 +52,7 @@ export class DbWatcherService implements IService {
         let output = `**${weights.dt}**\n\nLeverage: ${weights.leverage}\n`;
         ['XLC', 'XLY', 'XLP', 'XLE', 'XLF', 'XLV', 'XLI', 'XLB', 'XLRE', 'XLK', 'XLU'].forEach(
             symbol => {
-                const value = weights[`${symbol.toLowerCase()}_log` as keyof Weights] as number;
+                const value = weights[`${symbol}_log` as keyof Weights] as number;
                 const roundedValue = Math.round(value * 100);
                 if (roundedValue > 0) {
                     output += `${symbol}: ${roundedValue}%\n`;

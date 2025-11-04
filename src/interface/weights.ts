@@ -3,15 +3,15 @@ export interface Weights {
     dt: string;
     created_at: string;
     leverage: number;
-    xlc_log: number;
-    xly_log: number;
-    xlp_log: number;
-    xle_log: number;
-    xlf_log: number;
-    xlv_log: number;
-    xli_log: number;
-    xlb_log: number;
-    xlre_log: number;
-    xlk_log: number;
-    xlu_log: number;
+    XLC_log: number;
+    XLY_log: number;
+    XLP_log: number;
+    XLE_log: number;
+    XLF_log: number;
+    XLV_log: number;
+    XLI_log: number;
+    XLB_log: number;
+    XLRE_log: number;
+    XLK_log: number;
+    XLU_log: number;
 }
