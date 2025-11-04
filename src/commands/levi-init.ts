@@ -6,18 +6,19 @@ import {
     Constants
 } from 'eris';
 
+import { COMMANDS, FILES } from '../config';
 import { ICommand } from '../interface';
-import { Global } from '../util';
+import { Global, LocalStorage } from '../util';
 
-export class CbaAccept implements ICommand {
+export class LeviInit implements ICommand {
     private client: Client;
     private cmd: ApplicationCommand;
     public async create(client: Client) {
         this.client = client;
 
         this.cmd = await client.createCommand({
-            name: 'cba-accept',
-            description: 'Accept the CBA and get access to the server.',
+            name: COMMANDS.LEVI_INIT,
+            description: 'Initialize the Levi bot in this channel.',
             options: [],
             type: Constants.ApplicationCommandTypes.CHAT_INPUT,
             defaultPermission: false
@@ -25,17 +26,11 @@ export class CbaAccept implements ICommand {
     }
 
     public async handle(interaction: ComponentInteraction): Promise<void> {
-        const roleName = 'Player';
+        LocalStorage.set(FILES.CHANNEL, interaction.channel.id);
 
-        const roles = await this.client.getRESTGuildRoles(interaction.guildID);
-        const role = roles?.find(r => r.name === roleName);
-
-        if (!interaction.member.roles.includes(role.id)) {
-            await interaction.member.addRole(role.id);
-        }
-
-        await interaction.defer();
-        await interaction.deleteOriginalMessage();
+        await interaction.createMessage(
+            'Levi bot initialized in this channel. Channel ID: ' + interaction.channel.id
+        );
 
         await Global.refresh(interaction.guildID);
     }

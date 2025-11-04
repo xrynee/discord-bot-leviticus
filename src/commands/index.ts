@@ -3,15 +3,17 @@ import * as eris from 'eris';
 import { ICommand } from '../interface';
 
 // import { CbaAccept } from './cba-accept';
-import { CfbAssign } from './cfb-assign';
-import { CfbInit } from './cfb-init';
-import { TwitchCommand } from './twitch';
+// import { CfbAssign } from './cfb-assign';
+// import { CfbInit } from './cfb-init';
+// import { TwitchCommand } from './twitch';
+import { LeviInit } from './levi-init';
 
 export const COMMANDS: ICommand[] = [
     // new CbaAccept(),
-    new CfbAssign(),
-    new CfbInit(),
-    new TwitchCommand()
+    // new CfbAssign(),
+    // new CfbInit(),
+    // new TwitchCommand()
+    new LeviInit()
 ];
 
 export const ensureCommands = async (client: eris.Client): Promise<ICommand[]> => {

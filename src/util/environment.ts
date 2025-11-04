@@ -3,7 +3,11 @@ import { config } from 'dotenv';
 import { resolve } from 'path';
 
 export enum EnvKey {
-    DISCORD_BOT_TOKEN = 'DISCORD_BOT_TOKEN'
+    DISCORD_BOT_TOKEN = 'DISCORD_BOT_TOKEN',
+
+    EMAIL_CLIENT_ID = 'EMAIL_CLIENT_ID',
+    EMAIL_TENANT_ID = 'EMAIL_TENANT_ID',
+    EMAIL_CLIENT_SECRET = 'EMAIL_CLIENT_SECRET'
 }
 
 export class Environment {
