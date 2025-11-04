@@ -2,10 +2,14 @@ import { Client } from 'eris';
 
 import { IService } from '../interface';
 
-import { EmailWatcherService } from './email-watcher.service';
+// import { EmailWatcherService } from './email-watcher.service';
+import { DbWatcherService } from './db-watcher.service';
 
 const SERVICES: (client: Client) => IService[] = client => {
-    return [new EmailWatcherService(client)];
+    return [
+        // new EmailWatcherService(client),
+        new DbWatcherService(client)
+    ];
 };
 
 export const startServices = async (client: Client) => {

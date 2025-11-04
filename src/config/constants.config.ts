@@ -5,7 +5,8 @@ export const COMMANDS = {
 };
 
 export const FILES = {
-    CHANNEL: 'channel'
+    CHANNEL: 'channel',
+    LAST_WEIGHT_ID: 'last-weight-id'
 };
 
 export const COMPONENT_IDS = {
