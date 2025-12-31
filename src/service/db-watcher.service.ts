@@ -113,8 +113,8 @@ export class DbWatcherService implements IService {
         const hours = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10);
         const minutes = parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10);
 
-        // Check if we're between 3:50pm (15:50) and 4:00pm (16:00)
-        if (hours === 15 && minutes >= 50) {
+        // Check if we're between 3:50pm (15:50) and 4:00pm (16:00) or 12:50 and 12:59
+        if ((hours === 15 || hours === 12) && minutes >= 50) {
             return true;
         }
         if (hours === 16 && minutes === 0) {
