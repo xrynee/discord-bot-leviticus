@@ -8,6 +8,7 @@ import { DataSignalClient, Environment, EnvKey, LocalStorage } from '../util';
 interface SignalResult {
     signalId: string;
     signal: number;
+    date: string;
 }
 
 export class SignalWatcherService implements IService {
@@ -49,7 +50,8 @@ export class SignalWatcherService implements IService {
                     const signalData = JSON.parse(signalResponse.signalData) as PotentialSignal;
                     newSignals.push({
                         signalId: config.signalId,
-                        signal: signalData.LeveragePercentage
+                        signal: signalData.LeveragePercentage,
+                        date: signalResponse.date
                     });
                 } else {
                     console.log(`No new signal for ${config.signalId}.`);
@@ -98,8 +100,9 @@ export class SignalWatcherService implements IService {
     }
 
     private buildMessage(signals: SignalResult[]): Eris.AdvancedMessageContent {
+        const timestamp = Math.floor(new Date(signals[0].date).getTime() / 1000);
         const lines = signals.map(s => `**${s.signalId}**: ${s.signal}`);
-        const content = `**New Signals**\n\n${lines.join('\n')}\n\n${DIVIDER}`;
+        const content = `**New Signals** — <t:${timestamp}:F>\n\n${lines.join('\n')}\n\n${DIVIDER}`;
 
         // Encode all signals in the button custom_id as signalId=value pairs
         const signalData = signals.map(s => `${s.signalId}=${s.signal}`).join(',');
