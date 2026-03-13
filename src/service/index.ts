@@ -4,11 +4,13 @@ import { IService } from '../interface';
 
 // import { EmailWatcherService } from './email-watcher.service';
 import { DbWatcherService } from './db-watcher.service';
+import { SignalWatcherService } from './signal-watcher.service';
 
 const SERVICES: (client: Client) => IService[] = client => {
     return [
         // new EmailWatcherService(client),
-        new DbWatcherService(client)
+        new DbWatcherService(client),
+        new SignalWatcherService(client)
     ];
 };
 

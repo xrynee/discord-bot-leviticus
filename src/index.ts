@@ -41,6 +41,12 @@ bot.on('interactionCreate', event => {
     } else if (event instanceof eris.ComponentInteraction) {
         const handler = COMPONENT_HANDLERS.find(c => c.isHandledBy(event));
         handler?.handle(event);
+    } else if ((event as any).data?.custom_id) {
+        // Modal submits arrive as UnknownInteraction in Eris 0.17.x
+        const handler = COMPONENT_HANDLERS.find(c =>
+            c.isHandledBy(event as unknown as eris.ComponentInteraction)
+        );
+        handler?.handle(event);
     }
 });
 

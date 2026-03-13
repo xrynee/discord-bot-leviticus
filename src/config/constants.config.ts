@@ -1,18 +1,20 @@
 export const DIVIDER = '---------------------------------';
 
 export const COMMANDS = {
-    LEVI_INIT: 'levi-init'
+    LEVI_INIT: 'levi-init',
+    SIGNAL_CONFIG: 'signal-config',
+    SIGNAL_HELP: 'signal-help'
 };
 
 export const FILES = {
     CHANNEL: 'channel',
-    LAST_WEIGHT_ID: 'last-weight-id'
+    LAST_WEIGHT_ID: 'last-weight-id',
+    LAST_SIGNAL_DATE_SPX: 'last-signal-date-spx',
+    LAST_SIGNAL_DATE_NDX: 'last-signal-date-ndx',
+    SIGNAL_CONFIG: 'signal-config'
 };
 
 export const COMPONENT_IDS = {
-    // CLEAR_GAME_CACHE: 'cfb-clear-game-cache',
-    // CANCEL_CLEAR_GAME_CACHE: 'cfb-cancel-clear-game-cache',
-    // SELECT_SCHOOL: 'cfb-select-school',
-    // MARK_AS_DONE: 'cfb-mark-as-done',
-    // MARK_AS_NOT_DONE: 'cfb-mark-as-not-done'
+    SIGNAL_CALCULATE: 'signal-calculate',
+    SIGNAL_MODAL: 'signal-modal'
 };

@@ -1,7 +1,4 @@
 import { IComponentHandler } from '../interface';
+import { SignalCalculator } from './signal-calculator';
 
-// import { CfbSelectSchool } from './cfb-select-school';
-
-export const COMPONENT_HANDLERS: IComponentHandler[] = [
-    // new CfbSelectSchool()
-];
+export const COMPONENT_HANDLERS: IComponentHandler[] = [new SignalCalculator()];

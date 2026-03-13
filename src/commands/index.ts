@@ -7,13 +7,17 @@ import { ICommand } from '../interface';
 // import { CfbInit } from './cfb-init';
 // import { TwitchCommand } from './twitch';
 import { LeviInit } from './levi-init';
+import { SignalConfig } from './signal-config';
+import { SignalHelp } from './signal-help';
 
 export const COMMANDS: ICommand[] = [
     // new CbaAccept(),
     // new CfbAssign(),
     // new CfbInit(),
     // new TwitchCommand()
-    new LeviInit()
+    new LeviInit(),
+    new SignalConfig(),
+    new SignalHelp()
 ];
 
 export const ensureCommands = async (client: eris.Client): Promise<ICommand[]> => {
