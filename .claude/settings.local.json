@@ -1,7 +1,7 @@
 {
-  "permissions": {
-    "allow": [
-      "Bash(find /c/Code/discord-bot-leviticus -maxdepth 2 -not -path */node_modules* -not -path */.git/* -not -path */data/*)"
-    ]
-  }
+    "permissions": {
+        "allow": [
+            "Bash(find /c/Code/discord-bot-leviticus -maxdepth 2 -not -path */node_modules* -not -path */.git/* -not -path */data/*)"
+        ]
+    }
 }

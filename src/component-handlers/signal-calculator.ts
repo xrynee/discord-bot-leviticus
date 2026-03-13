@@ -1,9 +1,19 @@
 import { ComponentInteraction, Interaction } from 'eris';
 
-import { COMPONENT_IDS, FILES } from '../config';
 import { SignalUserConfig } from '../commands/signal-config';
+import { COMPONENT_IDS, FILES } from '../config';
 import { IComponentHandler } from '../interface';
 import { LocalStorage } from '../util';
+
+interface ParsedSignal {
+    signalId: string;
+    signal: number;
+}
+
+const ETF_MAP: Record<string, { base: string; leveraged: string }> = {
+    POT_SPX: { base: 'SPY', leveraged: 'SPXL' },
+    POT_NDX: { base: 'QQQ', leveraged: 'TQQQ' }
+};
 
 export class SignalCalculator implements IComponentHandler {
     public async handle(interaction: Interaction): Promise<void> {
@@ -16,16 +26,24 @@ export class SignalCalculator implements IComponentHandler {
         }
     }
 
+    private parseSignals(encodedSignals: string): ParsedSignal[] {
+        // Format: POT_SPX=0.8,POT_NDX=0.6
+        return encodedSignals.split(',').map(pair => {
+            const [signalId, value] = pair.split('=');
+            return { signalId, signal: parseFloat(value) };
+        });
+    }
+
     private async handleButtonClick(interaction: ComponentInteraction): Promise<void> {
-        // custom_id format: signal-calculate:{signalId}:{signalValue}
-        const parts = interaction.data.custom_id.split(':');
-        const signalId = parts[1];
-        const signalValue = parts[2];
+        // custom_id format: signal-calculate:{signalData}
+        const signalData = interaction.data.custom_id.substring(
+            COMPONENT_IDS.SIGNAL_CALCULATE.length + 1
+        );
 
         // Load saved defaults if available
         const userId = interaction.member?.id || interaction.user?.id;
         let defaultAccountValue = '';
-        let defaultLeverage = '2';
+        let defaultLeverage = '3';
         if (userId) {
             const config = await LocalStorage.get<SignalUserConfig>(
                 `${FILES.SIGNAL_CONFIG}-${userId}`
@@ -43,8 +61,8 @@ export class SignalCalculator implements IComponentHandler {
             {
                 type: 9, // MODAL
                 data: {
-                    title: `Calculate Position - ${signalId}`,
-                    custom_id: `${COMPONENT_IDS.SIGNAL_MODAL}:${signalId}:${signalValue}`,
+                    title: 'Calculate Position',
+                    custom_id: `${COMPONENT_IDS.SIGNAL_MODAL}:${signalData}`,
                     components: [
                         {
                             type: 1, // ActionRow
@@ -66,9 +84,9 @@ export class SignalCalculator implements IComponentHandler {
                                 {
                                     type: 4, // TextInput
                                     custom_id: 'max_leverage',
-                                    label: 'Max Leverage',
+                                    label: 'Max Leverage (up to 3)',
                                     style: 1, // Short
-                                    placeholder: '2',
+                                    placeholder: '3',
                                     value: defaultLeverage,
                                     required: true
                                 }
@@ -81,22 +99,26 @@ export class SignalCalculator implements IComponentHandler {
     }
 
     private async handleModalSubmit(interaction: Interaction): Promise<void> {
-        // custom_id format: signal-modal:{signalId}:{signalValue}
-        const parts = (interaction as any).data.custom_id.split(':');
-        const signalId = parts[1];
-        const signalValue = parseFloat(parts[2]);
+        // custom_id format: signal-modal:{signalData}
+        const signalData = (interaction as any).data.custom_id.substring(
+            COMPONENT_IDS.SIGNAL_MODAL.length + 1
+        );
+        const signals = this.parseSignals(signalData);
 
-        // Modal submit data comes in interaction.data.components
+        // Parse form fields
         const components = ((interaction as any).data as any).components as any[];
         const fields: any[] = [].concat(...components.map((row: any) => row.components));
         const accountValue = parseFloat(
             fields.find((c: any) => c.custom_id === 'account_value')?.value || '0'
         );
-        const maxLeverage = parseFloat(
-            fields.find((c: any) => c.custom_id === 'max_leverage')?.value || '2'
+        const maxLeverage = Math.min(
+            3,
+            parseFloat(
+                fields.find((c: any) => c.custom_id === 'max_leverage')?.value || '3'
+            )
         );
 
-        if (isNaN(accountValue) || isNaN(maxLeverage) || isNaN(signalValue)) {
+        if (isNaN(accountValue) || isNaN(maxLeverage)) {
             await (interaction as any).createMessage({
                 content: 'Invalid input. Please enter valid numbers.',
                 flags: 64
@@ -104,24 +126,51 @@ export class SignalCalculator implements IComponentHandler {
             return;
         }
 
-        // Signal is 0-1, each signal is half the portfolio, then multiply by leverage
-        const positionSize = accountValue * maxLeverage * signalValue * 0.5;
-
         const fmt = (n: number) =>
             n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-        const response = [
-            `**${signalId} - Position Calculator**`,
-            ``,
-            `Signal: ${signalValue}`,
+        const lines: string[] = [
+            '**Position Calculator**',
+            '',
             `Account Value: $${fmt(accountValue)}`,
             `Max Leverage: ${maxLeverage}x`,
-            ``,
-            `**Invest: $${fmt(positionSize)}**`
-        ].join('\n');
+            ''
+        ];
+
+        for (const s of signals) {
+            const etfs = ETF_MAP[s.signalId] || { base: s.signalId, leveraged: s.signalId };
+            const capital = accountValue * 0.5;
+            const effectiveLeverage = maxLeverage * s.signal;
+
+            if (effectiveLeverage <= 2) {
+                // Achievable with base ETF on margin alone
+                const buyBase = capital * effectiveLeverage;
+                lines.push(
+                    `**${s.signalId}** (Signal: ${s.signal})`,
+                    `  Buy **$${fmt(buyBase)}** of ${etfs.base}`,
+                    ''
+                );
+            } else {
+                // Need a mix: maximize base ETF on 2x margin, fill remainder with 3x ETF
+                // Capital split: a (base) + b (leveraged) = 1
+                // Exposure: 2a + 3b = effectiveLeverage
+                // a = 3 - effectiveLeverage, b = effectiveLeverage - 2
+                const fractionBase = 3 - effectiveLeverage;
+                const fractionLeveraged = effectiveLeverage - 2;
+                const buyBase = fractionBase * capital * 2;
+                const buyLeveraged = fractionLeveraged * capital;
+
+                lines.push(
+                    `**${s.signalId}** (Signal: ${s.signal})`,
+                    `  Buy **$${fmt(buyBase)}** of ${etfs.base}`,
+                    `  Buy **$${fmt(buyLeveraged)}** of ${etfs.leveraged}`,
+                    ''
+                );
+            }
+        }
 
         await (interaction as any).createMessage({
-            content: response,
+            content: lines.join('\n'),
             flags: 64 // Ephemeral
         });
     }

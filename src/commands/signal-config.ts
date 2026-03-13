@@ -25,7 +25,7 @@ export class SignalConfig implements ICommand {
                 },
                 {
                     name: 'max_leverage',
-                    description: 'Your max leverage (default: 2)',
+                    description: 'Your max leverage, up to 3 (default: 3)',
                     type: Constants.ApplicationCommandOptionTypes.NUMBER,
                     required: false
                 }
@@ -36,7 +36,7 @@ export class SignalConfig implements ICommand {
 
     public async handle(interaction: CommandInteraction): Promise<void> {
         const accountValue = (interaction.data.options?.[0] as any)?.value as number;
-        const maxLeverage = ((interaction.data.options?.[1] as any)?.value as number) || 2;
+        const maxLeverage = Math.min(3, ((interaction.data.options?.[1] as any)?.value as number) || 3);
 
         const userId = interaction.member?.id || interaction.user?.id;
         if (!userId) {

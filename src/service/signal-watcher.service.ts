@@ -5,6 +5,11 @@ import { COMPONENT_IDS, DIVIDER, FILES } from '../config';
 import { IService, PotentialSignal } from '../interface';
 import { DataSignalClient, Environment, EnvKey, LocalStorage } from '../util';
 
+interface SignalResult {
+    signalId: string;
+    signal: number;
+}
+
 export class SignalWatcherService implements IService {
     private bot: Eris.Client;
     // private db: Db;
@@ -29,6 +34,9 @@ export class SignalWatcherService implements IService {
                 historyKey: FILES.LAST_SIGNAL_DATE_NDX
             }
         ];
+
+        const newSignals: SignalResult[] = [];
+
         for (const config of signalIds) {
             try {
                 const todayDt =
@@ -38,30 +46,63 @@ export class SignalWatcherService implements IService {
                 const lastDate = +(await LocalStorage.get(config.historyKey));
                 if (new Date(signalResponse.date) > new Date(lastDate)) {
                     await LocalStorage.set(config.historyKey, signalResponse.date);
+                    const signalData = JSON.parse(signalResponse.signalData) as PotentialSignal;
+                    newSignals.push({
+                        signalId: config.signalId,
+                        signal: signalData.LeveragePercentage
+                    });
                 } else {
-                    console.log('No new weights found.');
-                    return;
+                    console.log(`No new signal for ${config.signalId}.`);
                 }
-
-                const messageContent = this.buildMessage(
-                    config.signalId,
-                    JSON.parse(signalResponse.signalData) as PotentialSignal
-                );
-
-                const channelId: string = await LocalStorage.get(FILES.CHANNEL);
-                await this.bot.createMessage(channelId, messageContent);
             } catch (error) {
-                console.error('Error checking weights:', error);
+                console.error(`Error checking signal ${config.signalId}:`, error);
             }
+        }
+
+        if (newSignals.length === 0) return;
+
+        const channelId: string = await LocalStorage.get(FILES.CHANNEL);
+
+        // Remove button from previous signal message
+        await this.removePreviousButton();
+
+        // Send combined message with one button
+        const messageContent = this.buildMessage(newSignals);
+        const sent = await this.bot.createMessage(channelId, messageContent);
+
+        // Store this message ID so we can remove its button next time
+        await LocalStorage.set(FILES.LAST_SIGNAL_MESSAGE, {
+            channelId,
+            messageId: sent.id
+        });
+    }
+
+    private async removePreviousButton(): Promise<void> {
+        try {
+            const prev = await LocalStorage.get<{ channelId: string; messageId: string }>(
+                FILES.LAST_SIGNAL_MESSAGE
+            );
+            if (prev?.messageId) {
+                const msg = await this.bot.getMessage(prev.channelId, prev.messageId);
+                if (msg) {
+                    await this.bot.editMessage(prev.channelId, prev.messageId, {
+                        content: msg.content,
+                        components: []
+                    });
+                }
+            }
+        } catch (error) {
+            // Previous message may have been deleted, ignore
+            console.log('Could not remove previous button:', error);
         }
     }
 
-    private buildMessage(
-        signalId: string,
-        signalData: PotentialSignal
-    ): Eris.AdvancedMessageContent {
-        const signal = signalData.LeveragePercentage;
-        const content = `**${signalId}**\n\nSignal: ${signal}\n\n${DIVIDER}`;
+    private buildMessage(signals: SignalResult[]): Eris.AdvancedMessageContent {
+        const lines = signals.map(s => `**${s.signalId}**: ${s.signal}`);
+        const content = `**New Signals**\n\n${lines.join('\n')}\n\n${DIVIDER}`;
+
+        // Encode all signals in the button custom_id as signalId=value pairs
+        const signalData = signals.map(s => `${s.signalId}=${s.signal}`).join(',');
 
         return {
             content,
@@ -73,7 +114,7 @@ export class SignalWatcherService implements IService {
                             type: 2, // Button
                             style: 1, // Primary
                             label: 'Calculate Position',
-                            custom_id: `${COMPONENT_IDS.SIGNAL_CALCULATE}:${signalId}:${signal}`
+                            custom_id: `${COMPONENT_IDS.SIGNAL_CALCULATE}:${signalData}`
                         }
                     ]
                 }
