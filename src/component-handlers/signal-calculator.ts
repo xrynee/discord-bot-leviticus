@@ -113,9 +113,7 @@ export class SignalCalculator implements IComponentHandler {
         );
         const maxLeverage = Math.min(
             3,
-            parseFloat(
-                fields.find((c: any) => c.custom_id === 'max_leverage')?.value || '3'
-            )
+            parseFloat(fields.find((c: any) => c.custom_id === 'max_leverage')?.value || '3')
         );
 
         if (isNaN(accountValue) || isNaN(maxLeverage)) {

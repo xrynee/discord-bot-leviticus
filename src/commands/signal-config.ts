@@ -1,4 +1,10 @@
-import { ApplicationCommand, Client, CommandInteraction, Constants } from 'eris';
+import {
+    ApplicationCommand,
+    ApplicationCommandStructure,
+    Client,
+    CommandInteraction,
+    Constants
+} from 'eris';
 
 import { COMMANDS, FILES } from '../config';
 import { ICommand } from '../interface';
@@ -12,8 +18,8 @@ export interface SignalUserConfig {
 export class SignalConfig implements ICommand {
     private cmd: ApplicationCommand;
 
-    public async create(client: Client) {
-        this.cmd = await client.createCommand({
+    public getDefinition(): ApplicationCommandStructure {
+        return {
             name: COMMANDS.SIGNAL_CONFIG,
             description: 'Set default account value and max leverage for signal calculations.',
             options: [
@@ -31,12 +37,19 @@ export class SignalConfig implements ICommand {
                 }
             ],
             type: Constants.ApplicationCommandTypes.CHAT_INPUT
-        });
+        };
+    }
+
+    public create(_client: Client, cmd: ApplicationCommand) {
+        this.cmd = cmd;
     }
 
     public async handle(interaction: CommandInteraction): Promise<void> {
         const accountValue = (interaction.data.options?.[0] as any)?.value as number;
-        const maxLeverage = Math.min(3, ((interaction.data.options?.[1] as any)?.value as number) || 3);
+        const maxLeverage = Math.min(
+            3,
+            ((interaction.data.options?.[1] as any)?.value as number) || 3
+        );
 
         const userId = interaction.member?.id || interaction.user?.id;
         if (!userId) {

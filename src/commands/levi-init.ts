@@ -1,5 +1,6 @@
 import {
     ApplicationCommand,
+    ApplicationCommandStructure,
     Client,
     CommandInteraction,
     ComponentInteraction,
@@ -13,16 +14,20 @@ import { Global, LocalStorage } from '../util';
 export class LeviInit implements ICommand {
     private client: Client;
     private cmd: ApplicationCommand;
-    public async create(client: Client) {
-        this.client = client;
 
-        this.cmd = await client.createCommand({
+    public getDefinition(): ApplicationCommandStructure {
+        return {
             name: COMMANDS.LEVI_INIT,
             description: 'Initialize the Levi bot in this channel.',
             options: [],
             type: Constants.ApplicationCommandTypes.CHAT_INPUT,
             defaultPermission: false
-        });
+        };
+    }
+
+    public create(client: Client, cmd: ApplicationCommand) {
+        this.client = client;
+        this.cmd = cmd;
     }
 
     public async handle(interaction: ComponentInteraction): Promise<void> {

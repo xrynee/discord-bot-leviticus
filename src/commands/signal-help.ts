@@ -1,4 +1,10 @@
-import { ApplicationCommand, Client, CommandInteraction, Constants } from 'eris';
+import {
+    ApplicationCommand,
+    ApplicationCommandStructure,
+    Client,
+    CommandInteraction,
+    Constants
+} from 'eris';
 
 import { COMMANDS } from '../config';
 import { ICommand } from '../interface';
@@ -6,13 +12,17 @@ import { ICommand } from '../interface';
 export class SignalHelp implements ICommand {
     private cmd: ApplicationCommand;
 
-    public async create(client: Client) {
-        this.cmd = await client.createCommand({
+    public getDefinition(): ApplicationCommandStructure {
+        return {
             name: COMMANDS.SIGNAL_HELP,
             description: 'Explains how the signal bot and position calculator work.',
             options: [],
             type: Constants.ApplicationCommandTypes.CHAT_INPUT
-        });
+        };
+    }
+
+    public create(_client: Client, cmd: ApplicationCommand) {
+        this.cmd = cmd;
     }
 
     public async handle(interaction: CommandInteraction): Promise<void> {

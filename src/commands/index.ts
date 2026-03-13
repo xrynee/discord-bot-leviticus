@@ -21,15 +21,17 @@ export const COMMANDS: ICommand[] = [
 ];
 
 export const ensureCommands = async (client: eris.Client): Promise<ICommand[]> => {
-    // await client.deleteCommand('1265762454630039586');
-    // await client.deleteCommand('1265762456672669879');
-    // await client.deleteCommand('1265762458421956608');
-    await Promise.all(
-        COMMANDS.map(async command => {
-            await command.create(client);
-        })
-    );
-    // const commands = await client.getCommands();
-    // console.log('commands', commands);
+    const definitions = COMMANDS.map(command => command.getDefinition());
+    const registered = await client.bulkEditCommands(definitions);
+
+    // Map registered commands back to handlers by name
+    for (const cmd of registered) {
+        const handler = COMMANDS.find(c => c.getDefinition().name === cmd.name);
+        if (handler) {
+            handler.create(client, cmd);
+        }
+    }
+
+    console.log(`Registered ${registered.length} commands via bulkEditCommands`);
     return COMMANDS;
 };
