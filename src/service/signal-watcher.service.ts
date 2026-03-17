@@ -44,7 +44,7 @@ export class SignalWatcherService implements IService {
                     Environment.get(EnvKey.DT_OVERRIDE) || new Date().toISOString().split('T')[0];
                 const signalResponse = await this.signalClient.getLatest(todayDt, config.signalId);
 
-                const lastDate = +(await LocalStorage.get(config.historyKey));
+                const lastDate: string = await LocalStorage.get(config.historyKey);
                 if (new Date(signalResponse.date) > new Date(lastDate)) {
                     await LocalStorage.set(config.historyKey, signalResponse.date);
                     const signalData = JSON.parse(signalResponse.signalData) as PotentialSignal;
@@ -132,15 +132,20 @@ export class SignalWatcherService implements IService {
             const inWindow = this.isAlwaysPollingWindow || this.isInPollingWindow();
 
             if (inWindow) {
-                // We're in the polling window, poll every 10 seconds
+                // We're in the wake window, start the 5s interval to stay alive
                 if (!pollingInterval) {
                     console.log(
-                        'Entered weights polling window (3:50pm-4pm EST). Starting frequent polling...'
+                        'Entered wake window (3:55pm-4:05pm ET). Waiting for active polling at 3:59:30...'
                     );
-                    await this.checkHistory(); // Check immediately
                     pollingInterval = setInterval(async () => {
-                        await this.checkHistory();
+                        if (this.isAlwaysPollingWindow || this.isInActivePollingWindow()) {
+                            await this.checkHistory();
+                        }
                     }, 5000); // Every 5 seconds
+                    // Also check immediately if we're already in the active window
+                    if (this.isAlwaysPollingWindow || this.isInActivePollingWindow()) {
+                        await this.checkHistory();
+                    }
                 }
             } else {
                 // We're outside the window, stop frequent polling
@@ -154,33 +159,48 @@ export class SignalWatcherService implements IService {
 
         await this.checkHistory(); // Check immediately for a new weight
 
-        // Check every minute to see if we've entered the window
+        // Check every 30 seconds to see if we've entered the window
         await checkAndPoll(); // Check window immediately on startup
         setInterval(async () => {
             await checkAndPoll();
-        }, 60000); // Check every minute
+        }, 30000); // Check every 30 seconds
     }
 
-    private isInPollingWindow(): boolean {
+    private getEasternTime(): { hours: number; minutes: number; seconds: number } {
         const now = new Date();
-
-        // Get the time in America/New_York timezone (handles EST/EDT automatically)
         const formatter = new Intl.DateTimeFormat('en-US', {
             timeZone: 'America/New_York',
             hour: 'numeric',
             minute: 'numeric',
+            second: 'numeric',
             hour12: false
         });
-
         const parts = formatter.formatToParts(now);
-        const hours = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10);
-        const minutes = parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10);
+        return {
+            hours: parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10),
+            minutes: parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10),
+            seconds: parseInt(parts.find(p => p.type === 'second')?.value || '0', 10)
+        };
+    }
 
-        // Check if we're between 3:50pm (15:50) and 4:00pm (16:00) or 12:50 and 12:59
-        if ((hours === 15 || hours === 12) && minutes >= 59) {
+    // Tight window: only hit the DB between 3:59:30 and 4:05 ET (or 12:59:30 and 1:05)
+    private isInActivePollingWindow(): boolean {
+        const { hours, minutes, seconds } = this.getEasternTime();
+        if ((hours === 15 || hours === 12) && minutes === 59 && seconds >= 30) return true;
+        if ((hours === 16 || hours === 13) && minutes <= 5) return true;
+        return false;
+    }
+
+    // Wide window: keep the interval alive from 3:55 to 4:05 ET so timers don't drift
+    private isInPollingWindow(): boolean {
+        const { hours, minutes } = this.getEasternTime();
+
+        // Check if we're between 3:55pm (15:55) and 4:05pm (16:05) ET
+        // Wide window to account for timer drift after process sleep/suspend
+        if ((hours === 15 || hours === 12) && minutes >= 55) {
             return true;
         }
-        if (hours === 16 && minutes === 0) {
+        if ((hours === 16 || hours === 13) && minutes <= 5) {
             return true;
         }
 
