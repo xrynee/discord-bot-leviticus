@@ -1,7 +1,6 @@
 // Import necessary libraries
 import * as msal from '@azure/msal-node';
 import { Client } from '@microsoft/microsoft-graph-client';
-
 import 'isomorphic-fetch'; // Polyfill for the fetch API
 import Eris from 'eris';
 
