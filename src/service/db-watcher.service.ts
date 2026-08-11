@@ -5,6 +5,11 @@ import { DIVIDER, FILES } from '../config';
 import { IService, Weights } from '../interface';
 import { DataSwitchboardClient, Environment, EnvKey, LocalStorage } from '../util';
 
+interface WeightsResult {
+    version: string;
+    weights: Weights;
+}
+
 export class DbWatcherService implements IService {
     private bot: Eris.Client;
     // private db: Db;
@@ -19,47 +24,75 @@ export class DbWatcherService implements IService {
     }
 
     async checkWeightsTable() {
-        try {
-            const todayDt =
-                Environment.get(EnvKey.DT_OVERRIDE) || new Date().toISOString().split('T')[0];
-            const weightsResponse = await this.swbClient.getWeights(todayDt);
+        const todayDt =
+            Environment.get(EnvKey.DT_OVERRIDE) || new Date().toISOString().split('T')[0];
 
-            if (weightsResponse?.length > 0) {
+        const versions = [
+            {
+                version: 'V1',
+                historyKey: FILES.LAST_WEIGHT_ID,
+                fetch: () => this.swbClient.getWeights(todayDt)
+            },
+            {
+                version: 'V2',
+                historyKey: FILES.LAST_WEIGHT_ID_V2,
+                fetch: () => this.swbClient.getWeightsV2(todayDt)
+            }
+        ];
+
+        const newWeights: WeightsResult[] = [];
+
+        for (const config of versions) {
+            try {
+                const weightsResponse = await config.fetch();
+
+                if (!(weightsResponse?.length > 0)) {
+                    console.log(`No daily weights found for ${config.version}.`);
+                    continue;
+                }
+
                 const weights = weightsResponse[0];
 
-                const lastWeightId = +(await LocalStorage.get(FILES.LAST_WEIGHT_ID));
-                if (weights.id !== lastWeightId) {
-                    await LocalStorage.set(FILES.LAST_WEIGHT_ID, weights.id.toString());
-                } else {
-                    console.log('No new weights found.');
-                    return;
+                const lastWeightId = +(await LocalStorage.get<string>(config.historyKey));
+                if (weights.id === lastWeightId) {
+                    console.log(`No new weights found for ${config.version}.`);
+                    continue;
                 }
-                console.log(`New weights found! DT: ${weights.dt}, ID: ${weights.id}`);
 
-                const messageContent = this.buildMessage(weights);
-
-                const channelId: string = await LocalStorage.get(FILES.CHANNEL);
-                await this.bot.createMessage(channelId, messageContent);
-            } else {
-                console.log('No new daily weights found.');
+                await LocalStorage.set(config.historyKey, weights.id.toString());
+                console.log(
+                    `New weights found for ${config.version}! DT: ${weights.dt}, ID: ${weights.id}`
+                );
+                newWeights.push({ version: config.version, weights });
+            } catch (error) {
+                console.error(`Error checking weights for ${config.version}:`, error);
             }
-        } catch (error) {
-            console.error('Error checking weights:', error);
         }
+
+        if (newWeights.length === 0) return;
+
+        const messageContent = this.buildMessage(newWeights);
+
+        const channelId: string = await LocalStorage.get(FILES.CHANNEL);
+        await this.bot.createMessage(channelId, messageContent);
     }
 
-    private buildMessage(weights: Weights): string {
-        let output = `**${weights.dt}**\n\nLeverage: ${weights.leverage}\n`;
-        ['XLC', 'XLY', 'XLP', 'XLE', 'XLF', 'XLV', 'XLI', 'XLB', 'XLRE', 'XLK', 'XLU'].forEach(
-            symbol => {
-                const value = weights[`${symbol}_log` as keyof Weights] as number;
-                const roundedValue = Math.round(value * 100);
-                if (roundedValue > 0) {
-                    output += `${symbol}: ${roundedValue}%\n`;
+    private buildMessage(results: WeightsResult[]): string {
+        const sections = results.map(({ version, weights }) => {
+            let output = `**${version} — ${weights.dt}**\n\nLeverage: ${weights.leverage}\n`;
+            ['XLC', 'XLY', 'XLP', 'XLE', 'XLF', 'XLV', 'XLI', 'XLB', 'XLRE', 'XLK', 'XLU'].forEach(
+                symbol => {
+                    const value = weights[`${symbol}_log` as keyof Weights] as number;
+                    const roundedValue = Math.round(value * 100);
+                    if (roundedValue > 0) {
+                        output += `${symbol}: ${roundedValue}%\n`;
+                    }
                 }
-            }
-        );
-        return output + '\n\n' + DIVIDER + '\n\n';
+            );
+            return output;
+        });
+
+        return sections.join('\n') + '\n\n' + DIVIDER + '\n\n';
     }
 
     public async start(): Promise<void> {

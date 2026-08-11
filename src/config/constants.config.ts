@@ -9,6 +9,7 @@ export const COMMANDS = {
 export const FILES = {
     CHANNEL: 'channel',
     LAST_WEIGHT_ID: 'last-weight-id',
+    LAST_WEIGHT_ID_V2: 'last-weight-id-v2',
     LAST_SIGNAL_DATE_SPX: 'last-signal-date-spx',
     LAST_SIGNAL_DATE_NDX: 'last-signal-date-ndx',
     SIGNAL_CONFIG: 'signal-config',

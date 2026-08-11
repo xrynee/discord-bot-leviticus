@@ -20,8 +20,14 @@ export class DataSwitchboardClient {
         this.tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
     }
 
+    // V1 (current) weights signal
     async getWeights(dt: string) {
         return this.get<Weights[]>(`/weights?dt=${dt}&strategy=allgpr`);
+    }
+
+    // V2 (new) weights signal — same shape as V1, served from the `nearclose` arm
+    async getWeightsV2(dt: string) {
+        return this.get<Weights[]>(`/weights?dt=${dt}&strategy=allgpr&arm=nearclose`);
     }
 
     private async getToken(): Promise<string> {
