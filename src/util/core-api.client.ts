@@ -1,8 +1,14 @@
-import { Weights } from '../interface';
+import { Bar, Quote } from '../interface';
 
 import { Environment, EnvKey } from './environment';
 
-export class DataSwitchboardClient {
+// Provider 1 is live — it quotes and prints today's bar, but its daily history only reaches
+// back a few months. Provider 4 carries years of history and never has today. Their closes
+// agree exactly on overlapping dates, so the two can be stitched together.
+export const LIVE_PROVIDER = 1;
+export const HISTORY_PROVIDER = 4;
+
+export class CoreApiClient {
     private token: string | null = null;
     private clientSecret: string;
     private clientId: string;
@@ -11,29 +17,26 @@ export class DataSwitchboardClient {
     private tokenUrl: string;
 
     constructor() {
+        // core-api sits behind the same Entra app registration as the switchboard.
         this.clientSecret = Environment.get(EnvKey.SWB_CLIENT_SECRET);
         this.clientId = Environment.get(EnvKey.SWB_CLIENT_ID);
-        this.baseUrl = Environment.get(EnvKey.SWB_BASE_URL);
+        this.baseUrl = Environment.get(EnvKey.CORE_API_BASE_URL);
         this.scope = Environment.get(EnvKey.SWB_SCOPE);
 
         const tenantId = Environment.get(EnvKey.SWB_TENANT_ID);
         this.tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
     }
 
-    // V1 (current) weights signal
-    async getWeights(dt: string) {
-        return this.getWeightsByArm(dt);
+    // Latest price for a symbol. Use `last` for the current mark.
+    async getQuote(symbol: string) {
+        return this.get<Quote>(`/quotes/${symbol}?provider=${LIVE_PROVIDER}`);
     }
 
-    // V2 (new) weights signal — same shape as V1, served from the `nearclose` arm
-    async getWeightsV2(dt: string) {
-        return this.getWeightsByArm(dt, 'nearclose');
-    }
-
-    // Weights for a single date. Returns an empty array on non-trading days.
-    async getWeightsByArm(dt: string, arm?: string) {
-        const armParam = arm ? `&arm=${arm}` : '';
-        return this.get<Weights[]>(`/weights?dt=${dt}&strategy=allgpr${armParam}`);
+    // Daily bars, inclusive of both dates. Dates must be YYYY-MM-DD.
+    async getBars(symbol: string, fromDate: string, toDate: string, provider = HISTORY_PROVIDER) {
+        return this.get<Bar[]>(
+            `/bars/D/${symbol}?provider=${provider}&from=${fromDate}&to=${toDate}`
+        );
     }
 
     private async getToken(): Promise<string> {
@@ -66,6 +69,11 @@ export class DataSwitchboardClient {
     }
 
     private async get<T>(url: string): Promise<T> {
+        // Without this the fetch below fails as "Invalid URL", which says nothing useful.
+        if (!this.baseUrl) {
+            throw new Error(`CORE_API_BASE_URL is not set in .env — cannot call core-api ${url}`);
+        }
+
         const token = await this.getToken();
         const response = await fetch(`${this.baseUrl}${url}`, {
             method: 'GET',
@@ -74,6 +82,11 @@ export class DataSwitchboardClient {
                 Authorization: `Bearer ${token}`
             }
         });
+
+        if (!response.ok) {
+            throw new Error(`core-api ${url} failed: ${response.status} ${response.statusText}`);
+        }
+
         return response.json();
     }
 }

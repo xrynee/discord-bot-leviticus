@@ -12,11 +12,19 @@ Environment.init();
 
 const botToken = Environment.get(EnvKey.DISCORD_BOT_TOKEN);
 
-console.log('botToken', botToken);
+// Never log the token itself — pm2 keeps these logs on disk.
+console.log(botToken ? 'Bot token loaded' : 'Bot token MISSING from .env');
 
 const bot = new eris.Client(botToken, {
     restMode: false,
     intents: [Constants.Intents.guildMessages]
+});
+
+// Discord routinely closes the gateway (code 1001 "going away") and Eris surfaces that as an
+// error event. Node throws on an unhandled 'error' emit, which kills the process and makes pm2
+// restart the bot; logging it instead lets Eris reconnect on its own.
+bot.on('error', (error: Error, shardId?: number) => {
+    console.error(`Gateway error${shardId === undefined ? '' : ` on shard ${shardId}`}:`, error);
 });
 
 bot.on('messageCreate', async (message: Message) => {
@@ -28,7 +36,9 @@ bot.on('messageCreate', async (message: Message) => {
 });
 
 bot.on('ready', () => {
-    ensureCommands(bot);
+    // Unawaited, so without this catch a failed registration is a silent unhandled rejection
+    // and the bot keeps serving whatever command set Discord already had.
+    ensureCommands(bot).catch(error => console.error('Failed to register commands:', error));
     init(bot);
     startServices(bot);
     console.log('Bot is ready');

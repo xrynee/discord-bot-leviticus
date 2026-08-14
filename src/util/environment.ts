@@ -22,17 +22,28 @@ export enum EnvKey {
 
     SIGNAL_BASE_URL = 'SIGNAL_BASE_URL',
 
+    CORE_API_BASE_URL = 'CORE_API_BASE_URL',
+
     IS_ALWAYS_POLLING_WINDOW = 'IS_ALWAYS_POLLING_WINDOW',
     DT_OVERRIDE = 'DT_OVERRIDE'
 }
 
 export class Environment {
+    private static initialized = false;
+
     public static init(): void {
         const path = `${resolve()}`;
         config({ path: `${path}/.env` });
+        this.initialized = true;
     }
 
     public static get(key: EnvKey): string {
+        // Anything constructed while modules load — the COMMANDS array, for one — reads env
+        // before index.ts reaches its init() call. dotenv never overwrites an existing value,
+        // so self-initializing here is safe and keeps that ordering from mattering.
+        if (!this.initialized) {
+            this.init();
+        }
         return process.env[key.valueOf()];
     }
 
